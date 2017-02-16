@@ -104,7 +104,7 @@ func MidBindAndValidateFormWithKey(key string, form interface{}) gin.HandlerFunc
 	}
 }
 
-func HandlerFuncWrapper(h Handler) gin.HandlerFunc {
+func HandlerWrapper(h Handler) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var funValue = reflect.ValueOf(h)
 		if funValue.IsValid() {
