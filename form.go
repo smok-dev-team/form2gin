@@ -13,10 +13,6 @@ const k_VALIDATE_ERROR = "_f2g_validate_form_error"
 const k_BIND_FORM = "_f2g_form"
 const k_DEFAULT_KEY = "Default"
 
-type Getter interface {
-	Get(key string) (value interface{}, exists bool)
-}
-
 type Handler interface{}
 type ErrorHandler func(c *gin.Context, err error)
 
@@ -48,11 +44,11 @@ func RegisterValidateErrorHandlerWithKey(key string, handler ErrorHandler) {
 }
 
 // ================================================================================
-func BindForm(form interface{}) gin.HandlerFunc {
-	return BindFormWithKey(k_DEFAULT_KEY, form)
+func MidBindForm(form interface{}) gin.HandlerFunc {
+	return MidBindFormWithKey(k_DEFAULT_KEY, form)
 }
 
-func BindFormWithKey(key string, form interface{}) gin.HandlerFunc {
+func MidBindFormWithKey(key string, form interface{}) gin.HandlerFunc {
 	var formType = reflect.TypeOf(form)
 	if formType.Kind() == reflect.Ptr {
 		formType = formType.Elem()
@@ -74,11 +70,11 @@ func BindFormWithKey(key string, form interface{}) gin.HandlerFunc {
 	}
 }
 
-func BindAndValidateForm(form interface{}) gin.HandlerFunc {
-	return BindAndValidateFormWithKey(k_DEFAULT_KEY, form)
+func MidBindAndValidateForm(form interface{}) gin.HandlerFunc {
+	return MidBindAndValidateFormWithKey(k_DEFAULT_KEY, form)
 }
 
-func BindAndValidateFormWithKey(key string, form interface{}) gin.HandlerFunc {
+func MidBindAndValidateFormWithKey(key string, form interface{}) gin.HandlerFunc {
 	var formType = reflect.TypeOf(form)
 	if formType.Kind() == reflect.Ptr {
 		formType = formType.Elem()
@@ -127,4 +123,31 @@ func HandlerFuncWrapper(h Handler) gin.HandlerFunc {
 		}
 		c.Next()
 	}
+}
+
+// ================================================================================
+
+func BindAndValidateForm(c *gin.Context, form interface{}) bool {
+	return BindAndValidateFormWithKey(k_DEFAULT_KEY, c, form)
+}
+
+func BindAndValidateFormWithKey(key string, c *gin.Context, form interface{}) bool {
+	var err = f.BindWithRequest(c.Request, form)
+	if err != nil {
+		var bindErrorHandler = bindErrorHandlers[key]
+		if bindErrorHandler != nil {
+			bindErrorHandler(c, err)
+		}
+		return false
+	}
+
+	var val = v.LazyValidate(form)
+	if val.OK() == false {
+		var validateErrorHandler = validateErrorHandlers[key]
+		if validateErrorHandler != nil {
+			validateErrorHandler(c, val.Error())
+		}
+		return false
+	}
+	return true
 }
