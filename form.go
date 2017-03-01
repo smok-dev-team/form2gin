@@ -125,6 +125,50 @@ func HandlerWrapper(h Handler) gin.HandlerFunc {
 	}
 }
 
+func Handle(form interface{}, handler Handler) gin.HandlerFunc {
+	var formType = reflect.TypeOf(form)
+	if formType.Kind() == reflect.Ptr {
+		formType = formType.Elem()
+	}
+	var key = k_DEFAULT_KEY
+
+	var bindErrorHandler = bindErrorHandlers[key]
+	var validateErrorHandler = validateErrorHandlers[key]
+
+	return func(c *gin.Context) {
+		var newForm = reflect.New(formType)
+		var err = f.BindWithRequest(c.Request, newForm.Interface())
+		if err != nil {
+			if bindErrorHandler != nil {
+				bindErrorHandler(c, err)
+			}
+			c.Set(k_FORM_ERROR, err)
+		}
+		var val = v.LazyValidate(newForm.Interface())
+		if val.OK() == false {
+			if validateErrorHandler != nil {
+				validateErrorHandler(c, val.Error())
+			}
+			c.Set(k_VALIDATE_ERROR, val.Error())
+		}
+		c.Set(k_BIND_FORM, newForm.Interface())
+
+		var funValue = reflect.ValueOf(handler)
+		if funValue.IsValid() {
+			var numIn = reflect.TypeOf(handler).NumIn()
+			var in = make([]reflect.Value, numIn)
+			if numIn > 0 {
+				in[0] = reflect.ValueOf(c)
+			}
+			if numIn > 1 {
+				in[1] = reflect.ValueOf(newForm.Interface())
+			}
+			funValue.Call(in)
+		}
+		c.Next()
+	}
+}
+
 // ================================================================================
 
 func BindAndValidateForm(c *gin.Context, form interface{}) bool {
