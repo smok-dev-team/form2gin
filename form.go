@@ -87,17 +87,19 @@ func MidBindAndValidateFormWithKey(key string, form interface{}) gin.HandlerFunc
 		var newForm = reflect.New(formType)
 		var err = f.BindWithRequest(c.Request, newForm.Interface())
 		if err != nil {
+			c.Set(k_FORM_ERROR, err)
 			if bindErrorHandler != nil {
 				bindErrorHandler(c, err)
+				return
 			}
-			c.Set(k_FORM_ERROR, err)
 		}
 		var val = v.LazyValidate(newForm.Interface())
 		if val.OK() == false {
+			c.Set(k_VALIDATE_ERROR, val.Error())
 			if validateErrorHandler != nil {
 				validateErrorHandler(c, val.Error())
+				return
 			}
-			c.Set(k_VALIDATE_ERROR, val.Error())
 		}
 		c.Set(k_BIND_FORM, newForm.Interface())
 		c.Next()
@@ -139,17 +141,19 @@ func Handle(form interface{}, handler Handler) gin.HandlerFunc {
 		var newForm = reflect.New(formType)
 		var err = f.BindWithRequest(c.Request, newForm.Interface())
 		if err != nil {
+			c.Set(k_FORM_ERROR, err)
 			if bindErrorHandler != nil {
 				bindErrorHandler(c, err)
+				return
 			}
-			c.Set(k_FORM_ERROR, err)
 		}
 		var val = v.LazyValidate(newForm.Interface())
 		if val.OK() == false {
+			c.Set(k_VALIDATE_ERROR, val.Error())
 			if validateErrorHandler != nil {
 				validateErrorHandler(c, val.Error())
+				return
 			}
-			c.Set(k_VALIDATE_ERROR, val.Error())
 		}
 		c.Set(k_BIND_FORM, newForm.Interface())
 
