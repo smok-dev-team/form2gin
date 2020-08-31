@@ -2,8 +2,8 @@ package form2gin
 
 import (
 	"github.com/gin-gonic/gin"
-	f "github.com/smartwalle/form"
-	v "github.com/smartwalle/validator"
+	f "github.com/smok-dev-team/form"
+	v "github.com/smok-dev-team/validator"
 	"reflect"
 	"sync"
 )
